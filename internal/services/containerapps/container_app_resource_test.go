@@ -31,7 +31,20 @@ func TestAccContainerAppResource_basic(t *testing.T) {
 		data.ImportStep(),
 	})
 }
+func TestAccContainerAppResourceSingleModeWithIngress_basic(t *testing.T) {
+	data := acceptance.BuildTestData(t, "azurerm_container_app", "test")
+	r := ContainerAppResource{}
 
+	data.ResourceTest(t, r, []acceptance.TestStep{
+		{
+			Config: r.basicSingleModeWithIngress(data),
+			Check: acceptance.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+			),
+		},
+		data.ImportStep(),
+	})
+}
 func TestAccContainerAppResource_withSystemAssignedIdentity(t *testing.T) {
 	data := acceptance.BuildTestData(t, "azurerm_container_app", "test")
 	r := ContainerAppResource{}
@@ -259,6 +272,32 @@ resource "azurerm_container_app" "test" {
   resource_group_name          = azurerm_resource_group.test.name
   container_app_environment_id = azurerm_container_app_environment.test.id
   revision_mode                = "Single"
+
+  template {
+    container {
+      name   = "acctest-cont-%[2]d"
+      image  = "jackofallops/azure-containerapps-python-acctest:v0.0.1"
+      cpu    = 0.25
+      memory = "0.5Gi"
+    }
+  }
+}
+`, r.template(data), data.RandomInteger)
+}
+func (r ContainerAppResource) basicSingleModeWithIngress(data acceptance.TestData) string {
+	return fmt.Sprintf(`
+%s
+
+resource "azurerm_container_app" "test" {
+  name                         = "acctest-capp-%[2]d"
+  resource_group_name          = azurerm_resource_group.test.name
+  container_app_environment_id = azurerm_container_app_environment.test.id
+  revision_mode                = "Single"
+  
+  ingress {
+    external_enabled = true
+	target_port = 8080
+  }
 
   template {
     container {

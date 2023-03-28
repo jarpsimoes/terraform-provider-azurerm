@@ -169,7 +169,7 @@ func ContainerAppIngressSchema() *pluginsdk.Schema {
 	}
 }
 
-func ExpandContainerAppIngress(input []Ingress, appName string) *containerapps.Ingress {
+func ExpandContainerAppIngress(input []Ingress, appName string, revisionMode string) *containerapps.Ingress {
 	if len(input) == 0 {
 		return nil
 	}
@@ -181,7 +181,7 @@ func ExpandContainerAppIngress(input []Ingress, appName string) *containerapps.I
 		External:      pointer.To(ingress.IsExternal),
 		Fqdn:          pointer.To(ingress.FQDN),
 		TargetPort:    pointer.To(int64(ingress.TargetPort)),
-		Traffic:       expandContainerAppIngressTraffic(ingress.TrafficWeights, appName),
+		Traffic:       expandContainerAppIngressTraffic(ingress.TrafficWeights, appName, revisionMode),
 	}
 	transport := containerapps.IngressTransportMethod(ingress.Transport)
 	result.Transport = &transport
@@ -337,14 +337,29 @@ func ContainerAppIngressTrafficWeight() *pluginsdk.Schema {
 	}
 }
 
-func expandContainerAppIngressTraffic(input []TrafficWeight, appName string) *[]containerapps.TrafficWeight {
-	if len(input) == 0 {
+func expandContainerAppIngressTraffic(input []TrafficWeight, appName string, revisionMode string) *[]containerapps.TrafficWeight {
+
+	revisionModeType := containerapps.ActiveRevisionsMode(revisionMode)
+
+	if len(input) == 0 && revisionModeType == containerapps.ActiveRevisionsModeMultiple {
 		return nil
+	} else if len(input) == 0 && revisionModeType == containerapps.ActiveRevisionsModeSingle {
+		resultDefault := make([]containerapps.TrafficWeight, 0)
+
+		traffic := containerapps.TrafficWeight{
+			LatestRevision: pointer.To(true),
+			Weight:         pointer.To(int64(100)),
+		}
+
+		resultDefault = append(resultDefault, traffic)
+
+		return &resultDefault
 	}
 
 	result := make([]containerapps.TrafficWeight, 0)
 
 	for _, v := range input {
+
 		traffic := containerapps.TrafficWeight{
 			LatestRevision: pointer.To(v.LatestRevision),
 			Weight:         pointer.To(int64(v.Weight)),

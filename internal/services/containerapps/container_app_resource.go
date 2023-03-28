@@ -186,7 +186,7 @@ func (r ContainerAppResource) Create() sdk.ResourceFunc {
 				Location: location.Normalize(env.Model.Location),
 				Properties: &containerapps.ContainerAppProperties{
 					Configuration: &containerapps.Configuration{
-						Ingress:    helpers.ExpandContainerAppIngress(app.Ingress, id.ContainerAppName),
+						Ingress:    helpers.ExpandContainerAppIngress(app.Ingress, id.ContainerAppName, app.RevisionMode),
 						Dapr:       helpers.ExpandContainerAppDapr(app.Dapr),
 						Secrets:    helpers.ExpandContainerSecrets(app.Secrets),
 						Registries: registries,
@@ -348,7 +348,7 @@ func (r ContainerAppResource) Update() sdk.ResourceFunc {
 			}
 
 			if metadata.ResourceData.HasChange("ingress") {
-				model.Properties.Configuration.Ingress = helpers.ExpandContainerAppIngress(state.Ingress, id.ContainerAppName)
+				model.Properties.Configuration.Ingress = helpers.ExpandContainerAppIngress(state.Ingress, id.ContainerAppName, state.RevisionMode)
 			}
 
 			if metadata.ResourceData.HasChange("registry") {
